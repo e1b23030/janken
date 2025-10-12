@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Janken GAME!</title>
+</head>
+
+<body>
+  <h1>Janken GAME!</h1>
+
+  <div th:if="${username}">
+    <p>Hi <span th:text="${username}"></span></p>
+  </div>
+
+  <p>
+    <a href="/jankengame?hand=Gu">ぐー</a>
+    <a href="/jankengame?hand=Choki">ちょき</a>
+    <a href="/jankengame?hand=Pa">ぱー</a>
+  </p>
+
+  <div th:if="${janken}">
+    <p>あなたの手 <span th:text="${janken.playerHand}"></span></p>
+    <p>相手の手 <span th:text="${janken.cpuHand}"></span></p>
+    <p>結果 <span th:text="${janken.result}"></span></p>
+  </div>
+
+</body>
+
+</html>
