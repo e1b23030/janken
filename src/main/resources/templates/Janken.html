@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head>
   <meta charset="UTF-8">
@@ -7,16 +7,23 @@
 </head>
 
 <body>
-  <h1>Janken GAME!</h1>
-
-  <div th:if="${username}">
-    <p>Hi <span th:text="${username}"></span></p>
+  <div sec:authorize="isAuthenticated()">
+    <a th:href="@{/logout}">ログアウト</a>
   </div>
 
+  <h1>Janken GAME!</h1>
+
+  <h2>エントリー</h2>
+  <ul>
+    <li th:each="user : ${entryUsers}" th:text="${user}"></li>
+  </ul>
+
+  <p>Hi <span th:text="${loginUser}"></span></p>
+
   <p>
-    <a href="/jankengame?hand=Gu">ぐー</a>
-    <a href="/jankengame?hand=Choki">ちょき</a>
-    <a href="/jankengame?hand=Pa">ぱー</a>
+    <a th:href="@{/janken/game(hand='Gu')}">ぐー</a>
+    <a th:href="@{/janken/game(hand='Choki')}">ちょき</a>
+    <a th:href="@{/janken/game(hand='Pa')}">ぱー</a>
   </p>
 
   <div th:if="${janken}">
