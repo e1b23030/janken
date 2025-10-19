@@ -1,62 +1,45 @@
 package oit.is.z3182.kaizi.janken.controller;
 
+import oit.is.z3182.kaizi.janken.model.Entry;
 import oit.is.z3182.kaizi.janken.model.Janken;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.security.Principal;
+
 @Controller
+@RequestMapping("/janken")
 public class JankenController {
 
-  /**
-   * トップページ (index.html) を表示
-   *
-   * @return
-   */
-  @GetMapping("/")
-  public String index() {
-    return "index.html";
+  private final Entry entry;
+
+  @Autowired
+  public JankenController(Entry entry) {
+    this.entry = entry;
   }
 
-  /**
-   * index.htmlからのPOSTリクエストを処理し、janken.htmlにリダイレクト
-   *
-   * @param username
-   * @param model
-   * @return
-   */
-  @PostMapping("/janken")
-  public String jankenPost(@RequestParam String username, ModelMap model) {
-    model.addAttribute("username", username);
+  @GetMapping
+  public String janken(Principal principal, ModelMap model) {
+    String loginUser = principal.getName();
+    this.entry.addUser(loginUser);
+
+    model.addAttribute("loginUser", loginUser);
+    model.addAttribute("entryUsers", this.entry.getUsers());
     return "janken.html";
   }
 
-  /**
-   * janken.htmlを直接表示する
-   *
-   * @return
-   */
-  @GetMapping("/janken")
-  public String jankenGet() {
-    return "janken.html";
-  }
-
-  /**
-   * じゃんけんの結果を処理する
-   *
-   * @param hand  プレイヤーの手
-   * @param model
-   * @return
-   */
-  @GetMapping("/jankengame")
-  public String jankengame(@RequestParam String hand, ModelMap model) {
-    // じゃんけんの処理
+  @GetMapping("/game")
+  public String jankengame(@RequestParam String hand, Principal principal, ModelMap model) {
     Janken janken = new Janken(hand);
-
-    // 結果をModelに格納
     model.addAttribute("janken", janken);
+
+    String loginUser = principal.getName();
+    model.addAttribute("loginUser", loginUser);
+    model.addAttribute("entryUsers", this.entry.getUsers());
 
     return "janken.html";
   }
