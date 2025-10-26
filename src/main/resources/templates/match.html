@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Match</title>
+</head>
+
+<body>
+  <div sec:authorize="isAuthenticated()">
+    <a th:href="@{/logout}">ログアウト</a>
+  </div>
+
+  <h1>Match</h1>
+
+  <h2 th:text="|${loginUser.name} V.S. ${opponent.name}|"></h2>
+
+  <p>
+    <a th:href="@{/fight(id=${opponent.id}, hand='Gu')}">ぐー</a>
+    <a th:href="@{/fight(id=${opponent.id}, hand='Choki')}">ちょき</a>
+    <a th:href="@{/fight(id=${opponent.id}, hand='Pa')}">ぱー</a>
+  </p>
+
+  <div th:if="${result}">
+    <p>あなたの手 <span th:text="${playerHand}"></span></p>
+    <p>相手の手 <span th:text="${cpuHand}"></span></p>
+    <p>結果 <span th:text="${result}"></span></p>
+  </div>
+
+  <p>
+    <a href="/janken">もどる</a>
+  </p>
+
+</body>
+
+</html>

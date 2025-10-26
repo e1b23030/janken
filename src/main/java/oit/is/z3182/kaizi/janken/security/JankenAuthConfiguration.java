@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -28,9 +29,13 @@ public class JankenAuthConfiguration {
             .logoutSuccessUrl("/")) // ログアウト後に / にリダイレクト
         .authorizeHttpRequests(authz -> authz
             .requestMatchers("/janken/**").authenticated() // /janken/以下は認証済みであること
+            .requestMatchers("/h2-console/**").permitAll()
             .anyRequest().permitAll()) // 上記以外は全員アクセス可能
         .csrf(csrf -> csrf
-            .ignoringRequestMatchers("/sample2*/**")); // sample2用にCSRF対策を無効化
+            .ignoringRequestMatchers("/h2-console/*", "/sample2*/**")) // sample2用にCSRF対策を無効化
+        .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
+
+
     return http.build();
   }
 
@@ -51,9 +56,11 @@ public class JankenAuthConfiguration {
         .password("{bcrypt}$2y$05$HaQUzOXOpZlk2ig/eg2/O.eu4JrM1nEDfaHoWJoCI497qDgWE5ISm").roles("USER").build();
     UserDetails user2 = User.withUsername("user2")
         .password("{bcrypt}$2y$05$ebRu.J/MSBQzI7sAcjMOTe/e3C7t8kB2U6lmeRBytGCYAlggKif/K").roles("USER").build();
+    UserDetails ほんだ = User.withUsername("ほんだ")
+        .password("{bcrypt}$2y$05$lksxss3D6W7sOUSP73J09Oc/a7eFhaeWPcWmyyrPfe8TGmMnNSURO").roles("USER").build();
 
     // 生成したユーザをImMemoryUserDetailsManagerに渡す（いくつでも良い）
-    return new InMemoryUserDetailsManager(user1, user2);
+    return new InMemoryUserDetailsManager(user1, user2,ほんだ);
   }
 
 }
