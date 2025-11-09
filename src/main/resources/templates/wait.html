@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Wait</title>
+</head>
+
+<body>
+  <h1>相手の手を待ってます</h1>
+  <p>Hi <span th:text="${loginUser.name}"></span></p>
+
+  <!-- 結果表示エリア -->
+  <div id="resultArea">
+  </div>
+
+  <!-- 戻るリンク (最初は非表示) -->
+  <p id="backLink" style="display: none;">
+    <a href="/janken">もどる</a>
+  </p>
+
+  <script th:inline="javascript">
+    const opponentId = /*[[${opponent.id}]]*/ 0;
+
+    const intervalId = setInterval(() => {
+      fetch(`/api/kekka?opponentId=${opponentId}`)
+        .then(response => {
+          if (response.status === 204) {
+            console.log("まだ結果がありません...");
+            return null;
+          }
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Network response was not ok.');
+        })
+        .then(match => {
+          if (match) {
+            clearInterval(intervalId);
+
+            // 結果を表示
+            const resultArea = document.getElementById('resultArea');
+            const loginUserId = /*[[${loginUser.id}]]*/ 0;
+
+            let player1 = {};
+            let player2 = {};
+
+            // 自分がuser1かuser2か判断
+            if (match.user1 === loginUserId) {
+              player1.id = match.user1;
+              player1.hand = match.user1Hand;
+              player2.id = match.user2;
+              player2.hand = match.user2Hand;
+            } else {
+              player1.id = match.user2;
+              player1.hand = match.user2Hand;
+              player2.id = match.user1;
+              player2.hand = match.user1Hand;
+            }
+
+            // 勝敗判定
+            let resultText = "Draw";
+            if (player1.hand !== player2.hand) {
+              if ((player1.hand === "Gu" && player2.hand === "Choki") ||
+                (player1.hand === "Choki" && player2.hand === "Pa") ||
+                (player1.hand === "Pa" && player2.hand === "Gu")) {
+                resultText = "You Win!";
+              } else {
+                resultText = "You Lose...";
+              }
+            }
+
+            resultArea.innerHTML = `
+                            <h2>結果</h2>
+                            <p>あなたの手: ${player1.hand}</p>
+                            <p>相手の手: ${player2.hand}</p>
+                            <p>結果: ${resultText}</p>
+                        `;
+
+            document.getElementById('backLink').style.display = 'block';
+            document.querySelector('h1').innerText = '試合結果';
+          }
+        })
+        .catch(error => {
+          console.error('Fetch error:', error);
+          clearInterval(intervalId);
+        });
+    }, 2000);
+  </script>
+</body>
+
+</html>
