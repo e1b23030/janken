@@ -8,5 +8,14 @@ CREATE TABLE IF NOT EXISTS matches (
     user1 INT NOT NULL,
     user2 INT NOT NULL,
     user1Hand VARCHAR(20) NOT NULL,
-    user2Hand VARCHAR(20) NOT NULL
+    user2Hand VARCHAR(20) NOT NULL,
+    isActive BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS matchinfo (
+    id IDENTITY NOT NULL PRIMARY KEY,
+    user1 INT NOT NULL,
+    user2 INT NOT NULL,
+    user1Hand VARCHAR(20) NOT NULL,
+    isActive BOOLEAN DEFAULT TRUE
 );

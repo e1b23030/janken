@@ -1,16 +1,20 @@
-package oit.is.z3182.kaizi.janken.controller;
+package oit.is.z3182.kaizi.janken.controller; // ユーザーのパッケージ名
 
-import oit.is.z3182.kaizi.janken.model.MatchMapper;
 import oit.is.z3182.kaizi.janken.model.Match;
+import oit.is.z3182.kaizi.janken.model.MatchMapper;
 import oit.is.z3182.kaizi.janken.model.User;
 import oit.is.z3182.kaizi.janken.model.UserMapper;
-import oit.is.z3182.kaizi.janken.model.Janken;
+import oit.is.z3182.kaizi.janken.model.MatchInfo;
+import oit.is.z3182.kaizi.janken.model.MatchInfoMapper;
+import oit.is.z3182.kaizi.janken.service.AsyncKekka;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -24,33 +28,37 @@ public class JankenController {
   @Autowired
   private MatchMapper matchMapper;
 
+  @Autowired
+  private MatchInfoMapper matchInfoMapper;
+
+  @Autowired
+  private AsyncKekka asyncKekka;
+
   @GetMapping("/janken")
   public String janken(Principal principal, ModelMap model) {
-    String loginUser = principal.getName();
+    String loginUserName = principal.getName();
+    User loginUser = userMapper.selectUserByName(loginUserName);
     model.addAttribute("loginUser", loginUser);
+
     ArrayList<User> users = userMapper.selectAllUsers();
-    model.addAttribute("users", users); // "users" という名前でHTMLに渡す
+    model.addAttribute("users", users);
 
     ArrayList<Match> matches = matchMapper.selectAllMatches();
     model.addAttribute("matches", matches);
+
+    ArrayList<MatchInfo> activeMatches = matchInfoMapper.selectActiveMatchInfosByUserId(loginUser.getId());
+    model.addAttribute("activeMatches", activeMatches);
 
     return "janken.html";
   }
 
   @GetMapping("/match")
   public String match(@RequestParam int id, Principal principal, ModelMap model) {
-
-    // ログインユーザー名(String)を取得
     String loginUserName = principal.getName();
-
-    // 1. ログインユーザーの *Userオブジェクト* をDBから取得
     User loginUser = userMapper.selectUserByName(loginUserName);
 
-    // 2. 対戦相手(id)の情報をDBから取得
     User opponent = userMapper.selectUserById(id);
 
-    // 3. Modelに情報をセット
-    // "loginUserName" (String) ではなく、"loginUser" (User) を渡す
     model.addAttribute("loginUser", loginUser);
     model.addAttribute("opponent", opponent);
 
@@ -59,44 +67,49 @@ public class JankenController {
 
   @GetMapping("/fight")
   public String fight(@RequestParam int id, @RequestParam String hand, Principal principal, ModelMap model) {
-    // 1. ユーザー情報を取得
     String loginUserName = principal.getName();
-    User loginUser = userMapper.selectUserByName(loginUserName); // 自分のUserオブジェクト
-    User opponent = userMapper.selectUserById(id); // 対戦相手のUserオブジェクト
+    User loginUser = userMapper.selectUserByName(loginUserName);
+    User opponent = userMapper.selectUserById(id);
 
-    // 2. CPUの手を決定 (固定で "Gu")
-    String cpuHand = "Gu";
+    MatchInfo pendingMatch = matchInfoMapper.findPendingMatch(opponent.getId(), loginUser.getId());
 
-    // 3. 試合結果をDBに登録
-    Match match = new Match();
-    match.setUser1(loginUser.getId()); // 自分のID
-    match.setUser2(opponent.getId()); // 相手のID
-    match.setUser1Hand(hand); // 自分の手
-    match.setUser2Hand(cpuHand); // 相手の手
-    matchMapper.insertMatch(match); // DBにINSERT
+    if (pendingMatch != null) {
+      Match match = new Match();
+      match.setUser1(opponent.getId());
+      match.setUser2(loginUser.getId());
+      match.setUser1Hand(pendingMatch.getUser1Hand());
+      match.setUser2Hand(hand);
+      match.setIsActive(true);
+      matchMapper.insertMatch(match);
 
-    // 4. 勝敗判定
-    String result = judge(hand, cpuHand);
+      matchInfoMapper.updateIsActiveToFalse(pendingMatch.getId());
 
-    // 5. モデルに結果をセットしてmatch.htmlに返す
+    } else {
+      MatchInfo myWait = new MatchInfo();
+      myWait.setUser1(loginUser.getId());
+      myWait.setUser2(opponent.getId());
+      myWait.setUser1Hand(hand);
+      myWait.setIsActive(true);
+      matchInfoMapper.insertMatchInfo(myWait);
+    }
+
     model.addAttribute("loginUser", loginUser);
     model.addAttribute("opponent", opponent);
-    model.addAttribute("playerHand", hand);
-    model.addAttribute("cpuHand", cpuHand);
-    model.addAttribute("result", result); // "result" があるとmatch.htmlで結果が表示される
-
-    return "match.html";
+    return "wait.html";
   }
 
-  private String judge(String playerHand, String cpuHand) {
-    if (playerHand.equals(cpuHand)) {
-      return "Draw";
-    } else if ((playerHand.equals("Pa") && cpuHand.equals("Gu")) ||
-        (playerHand.equals("Gu") && cpuHand.equals("Choki")) ||
-        (playerHand.equals("Choki") && cpuHand.equals("Pa"))) {
-      return "You Win!";
+  @GetMapping("/api/kekka")
+  @ResponseBody
+  public ResponseEntity<Match> getKekka(@RequestParam int opponentId, Principal principal) {
+    User loginUser = userMapper.selectUserByName(principal.getName());
+
+    Match match = asyncKekka.pollKekka(loginUser.getId(), opponentId);
+
+    if (match != null) {
+      return ResponseEntity.ok(match);
     } else {
-      return "You Lose...";
+      return ResponseEntity.noContent().build();
     }
   }
+
 }
